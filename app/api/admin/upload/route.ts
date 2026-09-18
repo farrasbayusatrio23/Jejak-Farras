@@ -2,6 +2,7 @@ import { getAuthorizedEditor } from "@/lib/editor-auth";
 import { getBucket } from "@/lib/storage";
 import { mediaUrl } from "@/lib/types";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;

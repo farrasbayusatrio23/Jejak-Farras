@@ -1,74 +1,84 @@
 # Jejak Farras — Vercel + Supabase
 
-Versi ini dipindahkan dari paket ekspor Jejak Farras ke stack **Next.js + Vercel + Supabase** dengan layout publik dan editor yang dipertahankan dari source asli.
+Project ini adalah versi **Next.js untuk Vercel + Supabase** dari source Jejak Farras. Layout publik dan editor dipertahankan; backend Cloudflare diganti ke Supabase.
 
-## Fitur yang dipertahankan
+## Penting sebelum deploy
 
-- Homepage jurnal dengan hero, catatan terbaru, arsip, profil penulis, dan desain asli.
-- Halaman detail `/catatan/[slug]`.
-- Editor `/admin` untuk membuat, mengedit, menerbitkan, dan menghapus artikel.
-- Pengaturan nama situs, hero, bio, lokasi, status perjalanan, dan foto profil.
-- Upload cover artikel dan foto profil.
-- Upload musik sampai 30 MB, pemilihan rentang mulai/selesai, serta player pada halaman publik.
-- Snapshot 4 artikel asli sudah tersedia di `supabase/setup.sql`.
+- `package.json` pada paket ZIP terbaru berada **langsung di root ZIP**. Jangan masukkan project ke folder tambahan saat membuat repository.
+- Vercel dikunci ke **Node.js 22.x**.
+- Project memakai **Next.js 16.3.3** (security-patched release).
+- `vercel.json` sudah menentukan framework `nextjs`, install command, dan build command.
 
 ## 1. Siapkan Supabase
 
-1. Buat project Supabase baru.
+1. Buat project Supabase.
 2. Buka **SQL Editor**.
-3. Jalankan seluruh isi `supabase/setup.sql` sekali.
-4. Buka **Authentication > Users** lalu buat user editor dengan email/password.
-5. Pastikan email user tersebut sama persis dengan nilai `EDITOR_EMAIL` yang nanti dipasang di Vercel.
+3. Jalankan seluruh isi `supabase/setup.sql` **satu kali**.
+4. Buka **Authentication → Users** dan buat user editor menggunakan email/password.
+5. Email user tersebut harus sama persis dengan `EDITOR_EMAIL` di Vercel.
 
-Catatan: foto profil lama tidak tersedia pada paket ekspor, sehingga setelah login Anda perlu mengunggah ulang foto profil dari halaman Editor.
+Snapshot 4 artikel dari ekspor lama sudah dimasukkan oleh `supabase/setup.sql`.
 
-## 2. Environment Variables
+> Foto profil lama tidak tersedia di ekspor, jadi upload kembali melalui `/admin` setelah login.
 
-Di Vercel Project Settings > Environment Variables, tambahkan:
+## 2. Environment Variables Vercel
+
+Buka **Vercel → Project → Settings → Environment Variables** lalu isi:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+SUPABASE_SECRET_KEY=sb_secret_xxx
 SUPABASE_STORAGE_BUCKET=journal-media
-EDITOR_EMAIL=your-editor-email@example.com
+EDITOR_EMAIL=email-editor-anda@example.com
 ```
 
-`SUPABASE_SERVICE_ROLE_KEY` hanya boleh dipasang sebagai server-side environment variable di Vercel. Jangan pernah menambahkan prefix `NEXT_PUBLIC_` pada key tersebut.
+Jika project Supabase Anda masih memakai key legacy, project ini juga menerima:
 
-## 3. Deploy ke Vercel
-
-Upload project ini ke GitHub/GitLab/Bitbucket lalu import repository tersebut ke Vercel, atau gunakan Vercel CLI.
-
-Build command:
-
-```bash
-npm run build
+```env
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
 
-Output framework akan terdeteksi otomatis sebagai Next.js.
+Cukup gunakan **salah satu pasangan** key publik + server. Jangan pernah memberi prefix `NEXT_PUBLIC_` pada secret/service-role key.
+
+## 3. Deploy
+
+Cara yang paling aman:
+
+1. Ekstrak ZIP.
+2. Pastikan file berikut terlihat di folder paling atas:
+   - `package.json`
+   - `vercel.json`
+   - `app/`
+   - `lib/`
+   - `supabase/`
+3. Push isi folder tersebut ke repository GitHub/GitLab/Bitbucket.
+4. Import repository ke Vercel.
+5. Vercel akan memakai:
+   - Framework: `nextjs`
+   - Install: `npm install --no-audit --no-fund`
+   - Build: `npm run build`
+   - Node: `22.x`
+6. Tambahkan environment variables di atas.
+7. Redeploy.
 
 Setelah deploy:
 
 - Homepage: `/`
 - Editor: `/admin`
 
-Login editor menggunakan user yang Anda buat pada Supabase Authentication.
+## Fitur
 
-## Data ekspor
+- Homepage jurnal dan layout asli.
+- Detail artikel `/catatan/[slug]`.
+- CRUD artikel dari `/admin`.
+- Draft/published.
+- Edit konten homepage/profil.
+- Upload cover dan foto profil.
+- Upload musik sampai 30 MB dengan rentang waktu playback.
+- Supabase PostgreSQL, Storage, dan Auth.
 
-Salinan JSON asli juga disertakan di:
+## Jika deploy masih gagal
 
-- `data/posts-export.json`
-- `data/site-settings-export.json`
-
-## Struktur backend
-
-- PostgreSQL Supabase: `posts`, `site_settings`
-- Supabase Storage bucket: `journal-media`
-- Supabase Auth: login editor email/password
-- Vercel Route Handlers: validasi editor, upload media, dan media streaming
-
-## Keamanan
-
-Tabel aplikasi mengaktifkan RLS tanpa policy publik. CRUD dilakukan dari route server menggunakan service role, setelah bearer token Supabase diverifikasi dan email cocok dengan `EDITOR_EMAIL`.
+Salin **Build Logs Vercel mulai dari baris error pertama sampai sekitar 20 baris setelahnya**. Jangan hanya kirim screenshot status `Failed`; error pertama adalah bagian yang dibutuhkan untuk diagnosis berikutnya.

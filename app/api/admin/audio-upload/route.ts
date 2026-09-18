@@ -4,6 +4,7 @@ import { getBucket } from "@/lib/storage";
 import { mediaUrl } from "@/lib/types";
 import type { AudioManifest } from "@/lib/audio-storage";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const AUDIO_LIMIT = 30 * 1024 * 1024;
