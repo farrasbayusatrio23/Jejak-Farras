@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { JournalAtmosphere } from "@/components/journal-atmosphere";
 import { MusicPlayer } from "@/components/music-player";
+import { PostMotif } from "@/components/post-motif";
 import { listPublishedPosts, starterPosts } from "@/lib/posts";
 import {
   defaultSiteSettings,
@@ -56,6 +58,17 @@ function initials(name: string) {
   );
 }
 
+/** Shorten a place name so the ticker keeps a steady rhythm. */
+function shortPlace(location: string) {
+  return location.split(",")[0].trim();
+}
+
+const ROUTE_SECTIONS = [
+  { id: "cerita", label: "Cerita" },
+  { id: "arsip", label: "Arsip" },
+  { id: "tentang", label: "Tentang" },
+];
+
 export default async function Home() {
   let posts: TravelPost[];
   let settings: SiteSettings = defaultSiteSettings;
@@ -77,9 +90,12 @@ export default async function Home() {
   const heroLines = settings.heroTitle.split(/\n+/).filter(Boolean);
   const ownerInitials = initials(settings.ownerName);
   const profileImage = mediaUrl(settings.profileImageKey);
+  const ticker = archive.length > 1 ? archive : starterPosts;
 
   return (
     <main className="journal-site" id="beranda">
+      <JournalAtmosphere sections={ROUTE_SECTIONS} />
+
       <header className="public-header">
         <a className="public-brand" href="#beranda" aria-label={`${settings.siteName}, kembali ke atas`}>
           <span className={`brand-avatar${profileImage ? " has-photo" : ""}`}>
@@ -101,9 +117,11 @@ export default async function Home() {
           alt={featured.coverAlt || `Pemandangan dari ${featured.location}`}
           width={1536}
           height={1024}
+          fetchPriority="high"
         />
         <div className="hero-overlay" />
         <div className="hero-grid" />
+        <div className="hero-mist" />
         <div className="hero-coordinates">
           <span>{settings.heroEyebrow}</span>
           <span>{settings.baseLocation.replace(/^Berbasis di\s+/i, "")} · {new Date(featured.tripDate).getUTCFullYear()}</span>
@@ -112,9 +130,15 @@ export default async function Home() {
           <p>Catatan terbaru · {featured.location}</p>
           <h1 id="hero-title">
             {heroLines.map((line, index) => (
-              <span key={`${line}-${index}`}>
-                {line}
-                {index === heroLines.length - 1 && <> <em>{settings.heroAccent}</em></>}
+              <span
+                className="hero-line"
+                key={`${line}-${index}`}
+                style={{ "--line-index": index } as React.CSSProperties}
+              >
+                <span>
+                  {line}
+                  {index === heroLines.length - 1 && <> <em>{settings.heroAccent}</em></>}
+                </span>
               </span>
             ))}
           </h1>
@@ -123,31 +147,56 @@ export default async function Home() {
             <a href="#cerita">Baca cerita <span aria-hidden="true">↘</span></a>
           </div>
         </div>
+        <div className="hero-scroll-cue" aria-hidden="true">
+          <i />
+          <span>Gulir</span>
+        </div>
       </section>
 
       <section className="journal-opening">
-        <div className="date-stamp" aria-hidden="true">
+        <div className="date-stamp" data-reveal="scale" aria-hidden="true">
           <strong>{String(new Date(featured.tripDate).getUTCDate()).padStart(2, "0")}</strong>
           <span>CAT<br />{new Date(featured.tripDate).getUTCFullYear()}</span>
         </div>
-        <p>{settings.openingQuote}</p>
-        <div>
+        <p data-reveal="left">{settings.openingQuote}</p>
+        <div data-reveal style={{ "--reveal-delay": "0.12s" } as React.CSSProperties}>
           <span className="micro-label">Tentang jurnal ini</span>
           <p>Ditulis pelan-pelan dari kereta, warung kecil, puncak bukit, dan kamar penginapan yang lampunya terlalu redup.</p>
         </div>
       </section>
 
+      <div className="coord-band" aria-hidden="true">
+        <div className="coord-track">
+          {[0, 1].map((pass) => (
+            <div className="coord-set" key={pass}>
+              {ticker.map((post) => (
+                <span className="coord-item" key={`${pass}-${post.id}`}>
+                  {shortPlace(post.location)}
+                  <em style={{ fontStyle: "normal", opacity: 0.55 }}>
+                    {formatDate(post.tripDate)}
+                  </em>
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <section className="featured-entry" id="cerita" aria-labelledby="featured-title">
-        <div className="section-cap">
+        <div className="section-cap" data-reveal="fade">
           <p><span>01</span> Catatan terbaru</p>
           <time dateTime={featured.tripDate}>{formatDate(featured.tripDate)} · {featured.readTime} menit baca</time>
         </div>
+        <figure className="featured-figure" data-reveal="clip" data-parallax-figure>
+          <img src={coverFor(featured)} alt={featured.coverAlt || `Pemandangan dari ${featured.location}`} />
+          <figcaption>{featured.location}</figcaption>
+        </figure>
         <div className="featured-layout">
-          <div>
+          <div data-reveal>
             <h2 id="featured-title">{featured.title}</h2>
             <div className="entry-pills"><span>{featured.location}</span><span>Perjalanan</span></div>
           </div>
-          <article>
+          <article data-reveal style={{ "--reveal-delay": "0.1s" } as React.CSSProperties}>
             <p className="lead-paragraph">{featured.excerpt}</p>
             {paragraphs.slice(0, 3).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
             {paragraphs.length > 3 && (
@@ -160,24 +209,41 @@ export default async function Home() {
 
       <section className="archive-section" id="arsip" aria-labelledby="archive-title">
         <div className="archive-intro">
-          <p className="section-kicker"><span>02</span> Dari arsip</p>
-          <h2 id="archive-title">Cerita dari<br />jalan lainnya.</h2>
-          <p>{archive.length} catatan terbit, semuanya dapat dibaca dari sini.</p>
+          <p className="section-kicker" data-reveal="fade"><span>02</span> Dari arsip</p>
+          <h2 id="archive-title" data-reveal>Cerita dari<br />jalan lainnya.</h2>
+          <p data-reveal style={{ "--reveal-delay": "0.1s" } as React.CSSProperties}>{archive.length} catatan terbit, semuanya dapat dibaca dari sini.</p>
         </div>
         <div className="archive-grid">
           {archive.length ? archive.map((post, index) => {
             const archiveCover = archiveCoverFor(post);
             return (
-              <Link className={`archive-card archive-card-${(index % 3) + 1}${archiveCover ? " has-cover" : ""}`} href={`/catatan/${post.slug}`} key={post.id}>
-                {archiveCover && <img className="archive-cover" src={archiveCover} alt={post.coverAlt || `Pemandangan dari ${post.location}`} />}
-                <div className="archive-card-top"><span>{String(index + 1).padStart(2, "0")} / Catatan</span><time dateTime={post.tripDate}>{formatDate(post.tripDate)}</time></div>
-                {!archiveCover && <div className="archive-motif" aria-hidden="true"><span>{index + 1}</span></div>}
-                <div className="archive-card-copy">
-                  <p>{post.location}</p>
-                  <h3>{post.title}</h3>
-                  <span>{post.readTime} menit baca</span>
-                </div>
-              </Link>
+              <div
+                className="archive-slot"
+                key={post.id}
+                data-reveal
+                style={{ "--reveal-delay": `${index * 0.07}s` } as React.CSSProperties}
+              >
+                <Link
+                  className={`archive-card archive-card-${(index % 3) + 1}${archiveCover ? " has-cover" : ""}`}
+                  href={`/catatan/${post.slug}`}
+                  data-tilt=""
+                  data-tilt-max="6"
+                >
+                  {archiveCover ? (
+                    <img className="archive-cover" src={archiveCover} alt={post.coverAlt || `Pemandangan dari ${post.location}`} />
+                  ) : (
+                    <div className="archive-motif">
+                      <PostMotif seed={post.slug} />
+                    </div>
+                  )}
+                  <div className="archive-card-top"><span>{String(index + 1).padStart(2, "0")} / Catatan</span><time dateTime={post.tripDate}>{formatDate(post.tripDate)}</time></div>
+                  <div className="archive-card-copy">
+                    <p>{post.location}</p>
+                    <h3>{post.title}</h3>
+                    <span>{post.readTime} menit baca</span>
+                  </div>
+                </Link>
+              </div>
             );
           }) : (
             <p className="archive-empty">Catatan berikutnya sedang ditulis.</p>
@@ -186,14 +252,14 @@ export default async function Home() {
       </section>
 
       <section className="about-section" id="tentang" aria-labelledby="about-title">
-        <div className={`author-mark${settings.profileImageKey ? " has-photo" : ""}`} aria-hidden={settings.profileImageKey ? undefined : true}>
+        <div className={`author-mark${settings.profileImageKey ? " has-photo" : ""}`} data-reveal="scale" aria-hidden={settings.profileImageKey ? undefined : true}>
           {settings.profileImageKey ? (
             <img src={mediaUrl(settings.profileImageKey) || ""} alt={settings.profileImageAlt || `Foto ${settings.ownerName}`} />
           ) : (
             <>{ownerInitials.slice(0, 1)}<span>/</span>{ownerInitials.slice(1, 2)}</>
           )}
         </div>
-        <div className="author-copy">
+        <div className="author-copy" data-reveal style={{ "--reveal-delay": "0.1s" } as React.CSSProperties}>
           <p className="section-kicker"><span>03</span> Tentang penulis</p>
           <h2 id="about-title">Halo, saya<br /><em>{settings.ownerName}.</em></h2>
           <p>{settings.aboutBio}</p>
