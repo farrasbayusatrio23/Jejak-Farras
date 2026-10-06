@@ -8,11 +8,20 @@ function required(name: string) {
   return value;
 }
 
+// Terima penamaan key Supabase baru maupun legacy.
+function firstAvailable(names: string[]) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  throw new Error(`Environment variable ${names.join(" atau ")} belum diatur.`);
+}
+
 export function getSupabaseAdmin() {
   if (!client) {
     client = createClient(
       required("NEXT_PUBLIC_SUPABASE_URL"),
-      required("SUPABASE_SERVICE_ROLE_KEY"),
+      firstAvailable(["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"]),
       {
         auth: {
           autoRefreshToken: false,

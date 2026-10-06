@@ -7,7 +7,11 @@ let client: SupabaseClient | null = null;
 export function getSupabaseBrowser() {
   if (client) return client;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  // Terima penamaan key publik baru (publishable) maupun legacy (anon).
+  const anonKey = (
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  )?.trim();
   if (!url || !anonKey) {
     throw new Error("Konfigurasi Supabase publik belum lengkap.");
   }

@@ -33,8 +33,11 @@ function findSameBasename(rel) {
 const required = [
   "package.json",
   "app/layout.tsx",
+  "app/globals.css",
   "app/page.tsx",
   "app/admin/page.tsx",
+  "app/catatan/[slug]/page.tsx",
+  "app/api/media/[...key]/route.ts",
   "components/music-player.tsx",
   "components/ui/alert-dialog.tsx",
   "components/ui/attachment.tsx",
