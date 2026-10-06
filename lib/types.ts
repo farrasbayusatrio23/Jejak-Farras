@@ -12,6 +12,8 @@ export type TravelPost = {
   status: PostStatus;
   coverKey: string | null;
   coverAlt: string;
+  musicKey: string | null;
+  musicTitle: string;
   authorId: string;
   createdAt: string;
   updatedAt: string;
@@ -28,6 +30,8 @@ export type PostInput = Pick<
   | "status"
   | "coverKey"
   | "coverAlt"
+  | "musicKey"
+  | "musicTitle"
 >;
 
 export function mediaUrl(key: string | null): string | null {

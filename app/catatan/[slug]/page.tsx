@@ -61,6 +61,25 @@ export default async function CatatanPage({ params }: CatatanPageProps) {
     (post.id === "starter-bromo" ? "/bromo-sunrise.webp" : "/bromo-sunrise.webp");
   const paragraphs = post.content.split(/\n\n+/).filter(Boolean);
 
+  // Lagu milik catatan ini; bila belum diisi, jatuh ke musik jurnal.
+  // ponytail: lagu catatan selalu diputar penuh (tanpa potong mulai/selesai);
+  // tambahkan kolom music_start/music_end di posts bila perlu memotong lagu.
+  const music = post.musicKey
+    ? {
+        enabled: true,
+        key: post.musicKey,
+        title: post.musicTitle || settings.musicTitle,
+        startAt: 0,
+        endAt: null as number | null,
+      }
+    : {
+        enabled: settings.musicEnabled,
+        key: settings.musicKey,
+        title: settings.musicTitle,
+        startAt: settings.musicStart,
+        endAt: settings.musicEnd,
+      };
+
   return (
     <main className="article-page">
       <header className="article-header">
@@ -96,11 +115,11 @@ export default async function CatatanPage({ params }: CatatanPageProps) {
       </footer>
 
       <MusicPlayer
-        enabled={settings.musicEnabled}
-        musicKey={settings.musicKey}
-        title={settings.musicTitle}
-        startAt={settings.musicStart}
-        endAt={settings.musicEnd}
+        enabled={music.enabled}
+        musicKey={music.key}
+        title={music.title}
+        startAt={music.startAt}
+        endAt={music.endAt}
       />
     </main>
   );

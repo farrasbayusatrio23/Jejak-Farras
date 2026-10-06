@@ -13,10 +13,18 @@ create table if not exists public.posts (
   status text not null default 'draft' check (status in ('draft', 'published')),
   cover_key text,
   cover_alt text not null default '',
+  music_key text,
+  music_title text not null default '',
   author_id text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migrasi untuk database yang sudah terlanjur dibuat: menambah kolom lagu per catatan.
+-- Aman dijalankan berulang kali.
+alter table public.posts
+  add column if not exists music_key text,
+  add column if not exists music_title text not null default '';
 
 create index if not exists idx_posts_status_trip_date
   on public.posts (status, trip_date desc);

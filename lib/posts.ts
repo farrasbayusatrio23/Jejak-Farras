@@ -13,6 +13,8 @@ type PostRow = {
   status: "draft" | "published";
   cover_key: string | null;
   cover_alt: string;
+  music_key: string | null;
+  music_title: string;
   author_id: string;
   created_at: string;
   updated_at: string;
@@ -31,6 +33,8 @@ function mapPost(row: PostRow): TravelPost {
     status: row.status,
     coverKey: row.cover_key,
     coverAlt: row.cover_alt,
+    musicKey: row.music_key ?? null,
+    musicTitle: row.music_title ?? "",
     authorId: row.author_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -48,6 +52,8 @@ function inputToRow(input: PostInput) {
     status: input.status,
     cover_key: input.coverKey,
     cover_alt: input.coverAlt,
+    music_key: input.musicKey,
+    music_title: input.musicTitle,
   };
 }
 
@@ -64,6 +70,8 @@ export const starterPosts: TravelPost[] = [
     status: "published",
     coverKey: null,
     coverAlt: "Hamparan Sawah di pagi Hari",
+    musicKey: null,
+    musicTitle: "",
     authorId: "xHsHLNbLFBy4rl2mjzZPjIxnSSgrUymi2ZCYRPXpfjEZMzPzeh6Nf4",
     createdAt: "2026-09-05T03:06:54.034Z",
     updatedAt: "2026-09-05T03:06:54.034Z",
@@ -82,6 +90,8 @@ export const starterPosts: TravelPost[] = [
     status: "published",
     coverKey: null,
     coverAlt: "Gunung Bromo dan lautan kabut saat matahari terbit",
+    musicKey: null,
+    musicTitle: "",
     authorId: "starter",
     createdAt: "2026-08-18T04:30:00.000Z",
     updatedAt: "2026-08-18T04:30:00.000Z",
@@ -100,6 +110,8 @@ export const starterPosts: TravelPost[] = [
     status: "published",
     coverKey: null,
     coverAlt: "",
+    musicKey: null,
+    musicTitle: "",
     authorId: "starter",
     createdAt: "2026-08-04T08:00:00.000Z",
     updatedAt: "2026-08-04T08:00:00.000Z",
@@ -118,6 +130,8 @@ export const starterPosts: TravelPost[] = [
     status: "published",
     coverKey: null,
     coverAlt: "",
+    musicKey: null,
+    musicTitle: "",
     authorId: "starter",
     createdAt: "2026-07-21T16:00:00.000Z",
     updatedAt: "2026-07-21T16:00:00.000Z",
@@ -215,6 +229,8 @@ export async function updatePost(id: string, input: PostInput) {
     post: mapPost(data as PostRow),
     replacedCoverKey:
       currentRow.cover_key !== input.coverKey ? currentRow.cover_key : null,
+    replacedMusicKey:
+      currentRow.music_key !== input.musicKey ? currentRow.music_key : null,
   };
 }
 

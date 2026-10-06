@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createPost, deletePost, listAllPosts, updatePost } from "@/lib/posts";
 import { getAuthorizedEditor } from "@/lib/editor-auth";
 import { getBucket } from "@/lib/storage";
+import { deleteAudioAsset } from "@/lib/audio-storage";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ const postInputSchema = z.object({
   status: z.enum(["draft", "published"]),
   coverKey: z.string().max(300).nullable(),
   coverAlt: z.string().trim().max(180),
+  musicKey: z.string().max(300).nullable(),
+  musicTitle: z.string().trim().max(120),
 });
 
 async function authorize(request: Request) {
@@ -95,6 +98,11 @@ export async function PUT(request: Request) {
         console.error("Unable to remove replaced cover", error);
       });
     }
+    if (result.replacedMusicKey) {
+      await deleteAudioAsset(result.replacedMusicKey).catch((error) => {
+        console.error("Unable to remove replaced audio", error);
+      });
+    }
     return Response.json({ post: result.post });
   } catch (error) {
     console.error("Unable to update post", error);
@@ -121,6 +129,11 @@ export async function DELETE(request: Request) {
     if (post.coverKey) {
       await getBucket().delete(post.coverKey).catch((error) => {
         console.error("Unable to remove deleted cover", error);
+      });
+    }
+    if (post.musicKey) {
+      await deleteAudioAsset(post.musicKey).catch((error) => {
+        console.error("Unable to remove deleted audio", error);
       });
     }
     return Response.json({ deleted: true });

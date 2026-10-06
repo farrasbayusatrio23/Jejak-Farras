@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ImagePlus,
   LoaderCircle,
+  Music2,
   Plus,
   Save,
   Trash2,
@@ -15,6 +16,8 @@ import { adminFetch } from "@/lib/admin-fetch";
 import {
   optimizeImageForUpload,
   readJsonResponse,
+  uploadAudioFile,
+  validateAudioFile,
   validateImageFile,
 } from "@/lib/client-upload";
 import type { PostInput, TravelPost } from "@/lib/types";
@@ -24,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   Attachment,
   AttachmentAction,
@@ -66,6 +70,8 @@ const newDraft = (): EditorDraft => ({
   status: "draft",
   coverKey: null,
   coverAlt: "",
+  musicKey: null,
+  musicTitle: "",
 });
 
 function fromPost(post: TravelPost): EditorDraft {
@@ -80,6 +86,8 @@ function fromPost(post: TravelPost): EditorDraft {
     status: post.status,
     coverKey: post.coverKey,
     coverAlt: post.coverAlt,
+    musicKey: post.musicKey,
+    musicTitle: post.musicTitle,
   };
 }
 
@@ -87,11 +95,14 @@ export default function EditorClient() {
   const [posts, setPosts] = useState<TravelPost[]>([]);
   const [draft, setDraft] = useState<EditorDraft>(newDraft);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedAudioFile, setSelectedAudioFile] = useState<File | null>(null);
+  const [audioUploadProgress, setAudioUploadProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const audioInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     adminFetch("/api/admin/posts", { cache: "no-store" })
@@ -122,10 +133,26 @@ export default function EditorClient() {
     [draft.coverKey, localPreview],
   );
 
+  const localAudioPreview = useMemo(
+    () => (selectedAudioFile ? URL.createObjectURL(selectedAudioFile) : null),
+    [selectedAudioFile],
+  );
+
+  useEffect(
+    () => () => {
+      if (localAudioPreview) URL.revokeObjectURL(localAudioPreview);
+    },
+    [localAudioPreview],
+  );
+
+  const audioPreview = localAudioPreview || mediaUrl(draft.musicKey);
+
   const selectPost = (post: TravelPost) => {
     if (saving) return;
     setDraft(fromPost(post));
     setSelectedFile(null);
+    setSelectedAudioFile(null);
+    setAudioUploadProgress(0);
     setError(null);
   };
 
@@ -133,6 +160,8 @@ export default function EditorClient() {
     if (saving) return;
     setDraft(newDraft());
     setSelectedFile(null);
+    setSelectedAudioFile(null);
+    setAudioUploadProgress(0);
     setError(null);
   };
 
@@ -165,6 +194,16 @@ export default function EditorClient() {
         if (fileInput.current) fileInput.current.value = "";
       }
 
+      let musicKey = draft.musicKey;
+      if (selectedAudioFile) {
+        setAudioUploadProgress(1);
+        const uploaded = await uploadAudioFile(selectedAudioFile, setAudioUploadProgress);
+        musicKey = String(uploaded.key);
+        setDraft((current) => ({ ...current, musicKey }));
+        setSelectedAudioFile(null);
+        if (audioInput.current) audioInput.current.value = "";
+      }
+
       const input: PostInput = {
         title: draft.title.trim(),
         excerpt: draft.excerpt.trim(),
@@ -175,6 +214,8 @@ export default function EditorClient() {
         status: draft.status,
         coverKey,
         coverAlt: draft.coverAlt.trim(),
+        musicKey,
+        musicTitle: draft.musicTitle.trim(),
       };
 
       const response = await adminFetch("/api/admin/posts", {
@@ -193,6 +234,7 @@ export default function EditorClient() {
       });
       setDraft(fromPost(post));
       setSelectedFile(null);
+      setAudioUploadProgress(0);
       toast.success(draft.id ? "Perubahan disimpan" : "Catatan baru dibuat");
     } catch (requestError) {
       const message = requestError instanceof Error ? requestError.message : "Catatan belum dapat disimpan.";
@@ -237,6 +279,28 @@ export default function EditorClient() {
     }
     setSelectedFile(file);
     setError(null);
+  };
+
+  const chooseAudio = (file: File | undefined) => {
+    if (!file) return;
+    const validationError = validateAudioFile(file);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setSelectedAudioFile(file);
+    setAudioUploadProgress(0);
+    if (!draft.musicTitle.trim()) {
+      update("musicTitle", file.name.replace(/\.[^.]+$/, ""));
+    }
+    setError(null);
+  };
+
+  const removeAudio = () => {
+    setSelectedAudioFile(null);
+    setAudioUploadProgress(0);
+    if (audioInput.current) audioInput.current.value = "";
+    update("musicKey", null);
   };
 
   return (
@@ -369,6 +433,52 @@ export default function EditorClient() {
                   <Input id="coverAlt" value={draft.coverAlt} onChange={(event) => update("coverAlt", event.target.value)} placeholder="Contoh: Gunung Bromo saat matahari terbit" maxLength={180} />
                   <small>Membantu pembaca yang menggunakan pembaca layar.</small>
                 </div>
+
+                <div className="form-field">
+                  <label htmlFor="musicTitle">Lagu catatan</label>
+                  <Input id="musicTitle" value={draft.musicTitle} onChange={(event) => update("musicTitle", event.target.value)} placeholder="Judul lagu untuk catatan ini" maxLength={120} />
+                  <small>Opsional. Lagu diputar otomatis saat catatan ini dibuka.</small>
+                </div>
+
+                <div className="music-editor">
+                  <div className="music-editor-icon" aria-hidden="true">
+                    <Music2 />
+                  </div>
+                  <div className="music-editor-main">
+                    <p>{selectedAudioFile?.name || draft.musicTitle || "Belum ada lagu"}</p>
+                    <small>MP3, M4A, AAC, WAV, OGG, atau WebM · maks. 30 MB</small>
+                    <div className="profile-photo-actions">
+                      <Button type="button" variant="secondary" size="sm" onClick={() => audioInput.current?.click()}>
+                        <Music2 /> Pilih lagu
+                      </Button>
+                      {(selectedAudioFile || draft.musicKey) && (
+                        <Button type="button" variant="outline" size="sm" onClick={removeAudio}>
+                          <X /> Hapus
+                        </Button>
+                      )}
+                    </div>
+                    <input
+                      ref={audioInput}
+                      className="sr-only"
+                      type="file"
+                      accept="audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,audio/webm,.mp3,.m4a,.aac,.wav,.ogg,.webm"
+                      onChange={(event) => chooseAudio(event.target.files?.[0])}
+                    />
+                  </div>
+                  {audioPreview && (
+                    <audio className="music-editor-preview" src={audioPreview} controls preload="metadata" />
+                  )}
+                </div>
+
+                {audioUploadProgress > 0 && (
+                  <div className="music-upload-status">
+                    <div>
+                      <span>Mengunggah lagu</span>
+                      <strong>{audioUploadProgress}%</strong>
+                    </div>
+                    <Progress value={audioUploadProgress} />
+                  </div>
+                )}
 
                 <div className="field-grid">
                   <div className="form-field">
